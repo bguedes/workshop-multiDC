@@ -1,0 +1,222 @@
+version: '3'
+services:
+
+  seed_node_DC1:
+    image: datastax/dse-server:6.8.12
+    container_name: seed_node_DC1
+    networks:
+        dc1ring:
+            ipv4_address: 172.30.0.2
+    environment:
+      - DS_LICENSE=accept
+      - SEEDS=seed_node_DC1,seed_node_DC2
+      - DC=DC1
+      - JVM_EXTRA_OPTS=-Xmx2g -Xms1g
+      - NUM_TOKENS=8
+      - RACK=rack1
+    # Allow DSE to lock memory with mlock
+    cap_add:
+    - IPC_LOCK
+    ulimits:
+      memlock: -1
+
+  seed_node_DC2:
+    image: datastax/dse-server:6.8.12
+    container_name: seed_node_DC2
+    networks:
+        dc1ring:
+            ipv4_address: 172.30.0.5
+    environment:
+      - DS_LICENSE=accept
+      - SEEDS=seed_node_DC1,seed_node_DC2
+      - DC=DC2
+      - JVM_EXTRA_OPTS=-Xmx2g -Xms1g
+      - NUM_TOKENS=8
+      - RACK=rack1
+    depends_on:
+      - seed_node_DC1
+    entrypoint: ["/opt/dse/script/wait-for-DSE.sh", "seed_node_DC1", "9042", "/entrypoint.sh", "dse", "cassandra", "-f"]
+    volumes:
+      - ./script/:/opt/dse/script/
+    # Allow DSE to lock memory with mlock
+    cap_add:
+    - IPC_LOCK
+    ulimits:
+      memlock: -1
+
+  node1_DC1:
+    image: datastax/dse-server:6.8.12
+    container_name: node1_DC1
+    networks:
+        dc1ring:
+            ipv4_address: 172.30.0.3
+    environment:
+      - DS_LICENSE=accept
+      - SEEDS=seed_node_DC1,seed_node_DC2
+      - DC=DC1
+      - JVM_EXTRA_OPTS=-Xmx2g -Xms1g
+      - NUM_TOKENS=8
+      - RACK=rack2
+    depends_on:
+      - seed_node_DC2
+    entrypoint: ["/opt/dse/script/wait-for-DSE.sh", "seed_node_DC2", "9042" ,"/entrypoint.sh", "dse", "cassandra", "-f"]
+    volumes:
+      - ./script/:/opt/dse/script/
+    # Allow DSE to lock memory with mlock
+    cap_add:
+    - IPC_LOCK
+    ulimits:
+      memlock: -1
+
+  node2_DC1:
+    image: datastax/dse-server:6.8.12
+    container_name: node2_DC1
+    networks:
+        dc1ring:
+            ipv4_address: 172.30.0.4
+    environment:
+      - DS_LICENSE=accept
+      - SEEDS=seed_node_DC1,seed_node_DC2
+      - DC=DC1
+      - JVM_EXTRA_OPTS=-Xmx2g -Xms1g
+      - NUM_TOKENS=8
+      - RACK=rack3
+    depends_on:
+      - node1_DC1
+    entrypoint: ["/opt/dse/script/wait-for-DSE.sh", "node1_DC1", "9042" ,"/entrypoint.sh", "dse", "cassandra", "-f"]
+    volumes:
+      - ./script/:/opt/dse/script/
+    # Allow DSE to lock memory with mlock
+    cap_add:
+    - IPC_LOCK
+    ulimits:
+      memlock: -1
+
+  node1_DC2:
+    image: datastax/dse-server:6.8.12
+    container_name: node1_DC2
+    networks:
+        dc1ring:
+            ipv4_address: 172.30.0.6
+    environment:
+      - DS_LICENSE=accept
+      - SEEDS=seed_node_DC1,seed_node_DC2
+      - DC=DC2
+      - JVM_EXTRA_OPTS=-Xmx2g -Xms1g
+      - NUM_TOKENS=8
+      - RACK=rack2
+    depends_on:
+      - node2_DC1
+    entrypoint: ["/opt/dse/script/wait-for-DSE.sh", "node2_DC1", "9042", "/entrypoint.sh", "dse", "cassandra", "-f"]
+    volumes:
+      - ./script/:/opt/dse/script/
+    # Allow DSE to lock memory with mlock
+    cap_add:
+    - IPC_LOCK
+    ulimits:
+      memlock: -1
+
+  node2_DC2:
+    image: datastax/dse-server:6.8.12
+    container_name: node2_DC2
+    networks:
+        dc1ring:
+            ipv4_address: 172.30.0.7
+    environment:
+      - DS_LICENSE=accept
+      - SEEDS=seed_node_DC1,seed_node_DC2
+      - DC=DC2
+      - JVM_EXTRA_OPTS=-Xmx2g -Xms1g
+      - NUM_TOKENS=8
+      - RACK=rack3
+    depends_on:
+      - node1_DC2
+    entrypoint: ["/opt/dse/script/wait-for-DSE.sh", "node1_DC2", "9042", "/entrypoint.sh", "dse", "cassandra", "-f"]
+    volumes:
+      - ./script/:/opt/dse/script/
+    # Allow DSE to lock memory with mlock
+    cap_add:
+    - IPC_LOCK
+    ulimits:
+      memlock: -1
+
+#-----------------------------------------------------------------------------------------
+
+  node3_DC1:
+    image: datastax/dse-server:6.8.12
+    container_name: node3_DC1
+    networks:
+        dc1ring:
+            ipv4_address: 172.30.0.8
+    environment:
+      - DS_LICENSE=accept
+      - SEEDS=seed_node_DC1,seed_node_DC2
+      - DC=DC1
+      - JVM_EXTRA_OPTS=-Xmx2g -Xms1g
+      - NUM_TOKENS=8
+      - RACK=rack1
+    depends_on:
+      - node2_DC2
+    entrypoint: ["/opt/dse/script/wait-for-DSE.sh", "node2_DC2", "9042" ,"/entrypoint.sh", "dse", "cassandra", "-f"]
+    volumes:
+      - ./script/:/opt/dse/script/
+    # Allow DSE to lock memory with mlock
+    cap_add:
+    - IPC_LOCK
+    ulimits:
+      memlock: -1
+
+  node4_DC1:
+    image: datastax/dse-server:6.8.12
+    container_name: node4_DC1
+    networks:
+        dc1ring:
+            ipv4_address: 172.30.0.9
+    environment:
+      - DS_LICENSE=accept
+      - SEEDS=seed_node_DC1,seed_node_DC2
+      - DC=DC1
+      - JVM_EXTRA_OPTS=-Xmx2g -Xms1g
+      - NUM_TOKENS=8
+      - RACK=rack2
+    depends_on:
+      - node3_DC1
+    entrypoint: ["/opt/dse/script/wait-for-DSE.sh", "node3_DC1", "9042" ,"/entrypoint.sh", "dse", "cassandra", "-f"]
+    volumes:
+      - ./script/:/opt/dse/script/
+    # Allow DSE to lock memory with mlock
+    cap_add:
+    - IPC_LOCK
+    ulimits:
+      memlock: -1
+
+  node5_DC1:
+    image: datastax/dse-server:6.8.12
+    container_name: node5_DC1
+    networks:
+        dc1ring:
+            ipv4_address: 172.30.0.10
+    environment:
+      - DS_LICENSE=accept
+      - SEEDS=seed_node_DC1,seed_node_DC2
+      - DC=DC1
+      - JVM_EXTRA_OPTS=-Xmx2g -Xms1g
+      - NUM_TOKENS=8
+      - RACK=rack3
+    depends_on:
+      - node4_DC1
+    entrypoint: ["/opt/dse/script/wait-for-DSE.sh", "node4_DC1", "9042" ,"/entrypoint.sh", "dse", "cassandra", "-f"]
+    volumes:
+      - ./script/:/opt/dse/script/
+    # Allow DSE to lock memory with mlock
+    cap_add:
+    - IPC_LOCK
+    ulimits:
+      memlock: -1
+
+networks:
+    dc1ring:
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.30.0.0/16
